@@ -95,7 +95,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       message: "Ok",
-      data: updatedProducts.filter(Boolean), // Filter out any undefined or null results
+      data: updatedProducts, // Filter out any undefined or null results
     });
   } catch (error: any) {
     console.error("Error in GET:", error);
