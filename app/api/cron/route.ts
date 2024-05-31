@@ -148,7 +148,7 @@ export async function GET() {
   } catch (error: any) {
     console.log("Error in GET:", error);
     return NextResponse.json({
-      message: "Error",
+      message: "Error while performing the action",
       error: error.message,
     });
   }
