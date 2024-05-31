@@ -8,16 +8,15 @@ import {
   getHighestPrice,
   getLowestPrice,
 } from "@/lib/utils";
+import { User } from "@/types";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
   try {
     await connectDB();
 
-    const products = await Product.find({});
+    const products = await Product.find();
     if (!products) throw new Error("No product fetched");
-
-    // console.log("Fetched products:", products);
 
     // SCRAPE LATEST PRODUCT DETAILS & UPDATE DB
     const updatedProducts = await Promise.all(
@@ -46,8 +45,6 @@ export async function GET(request: Request) {
             averagePrice: getAveragePrice(updatedPriceHistory),
           };
 
-          // console.log(`Product ${index} scraped and updated:`, product);
-
           // Update Products in DB
           const updatedProduct = await Product.findOneAndUpdate(
             { url: product?.url },
@@ -65,7 +62,6 @@ export async function GET(request: Request) {
             scrapedProduct,
             currentProduct
           );
-          // console.log(`Notification type for ${product.url}:`, emailNotifType);
 
           if (
             emailNotifType &&
@@ -80,7 +76,7 @@ export async function GET(request: Request) {
             const emailContent = generateEmailBody(productInfo, emailNotifType);
             // Get array of user emails
             const userEmails = updatedProduct?.users?.map(
-              (user: any) => user?.email
+              (user: User) => user?.email
             );
             // Send email notification
             await sendEmail(emailContent, userEmails);
