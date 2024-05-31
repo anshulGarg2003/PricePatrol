@@ -10,7 +10,7 @@ export type Product = {
   _id?: string;
   url: string;
   currency: string;
-  image: string[];
+  image: string[] | [];
   title: string;
   currentPrice: number;
   originalPrice: number;
@@ -24,7 +24,7 @@ export type Product = {
   reviewsCount: number;
   stars: number;
   isOutOfStock: Boolean;
-  users?: User[];
+  users?: User[] | [];
 };
 
 export type NotificationType =
