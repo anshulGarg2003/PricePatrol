@@ -12,76 +12,100 @@ import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
   try {
-    connectDB();
+    await connectDB();
 
     const products = await Product.find({});
-
     if (!products) throw new Error("No product fetched");
 
-    // ======================== 1 SCRAPE LATEST PRODUCT DETAILS & UPDATE DB
+    // console.log("Fetched products:", products);
+
+    // SCRAPE LATEST PRODUCT DETAILS & UPDATE DB
     const updatedProducts = await Promise.all(
-      products.map(async (currentProduct) => {
-        // Scrape product
-        const scrapedProduct = await scrapeAmazonProduct(currentProduct.url);
+      products.map(async (currentProduct, index) => {
+        try {
+          // Scrape product
+          const scrapedProduct = await scrapeAmazonProduct(currentProduct?.url);
+          if (!scrapedProduct) {
+            console.warn(`Product scrape failed for ${currentProduct?.url}`);
+            return;
+          }
 
-        if (!scrapedProduct) return;
+          const priceHistory = Array.isArray(currentProduct.priceHistory)
+            ? currentProduct?.priceHistory
+            : [];
+          const updatedPriceHistory = [
+            ...priceHistory,
+            { price: scrapedProduct.currentPrice, date: new Date() },
+          ];
 
-        const updatedPriceHistory = [
-          ...currentProduct.priceHistory,
-          {
-            price: scrapedProduct.currentPrice,
-          },
-        ];
-
-        const product = {
-          ...scrapedProduct,
-          priceHistory: updatedPriceHistory,
-          lowestPrice: getLowestPrice(updatedPriceHistory),
-          highestPrice: getHighestPrice(updatedPriceHistory),
-          averagePrice: getAveragePrice(updatedPriceHistory),
-        };
-
-        // Update Products in DB
-        const updatedProduct = await Product.findOneAndUpdate(
-          {
-            url: product.url,
-          },
-          product
-        );
-
-        // ======================== 2 CHECK EACH PRODUCT'S STATUS & SEND EMAIL ACCORDINGLY
-        const emailNotifType = getEmailNotifType(
-          scrapedProduct,
-          currentProduct
-        );
-
-        if (emailNotifType && updatedProduct.users.length > 0) {
-          const productInfo = {
-            title: updatedProduct.title,
-            url: updatedProduct.url,
+          const product = {
+            ...scrapedProduct,
+            priceHistory: updatedPriceHistory,
+            lowestPrice: getLowestPrice(updatedPriceHistory),
+            highestPrice: getHighestPrice(updatedPriceHistory),
+            averagePrice: getAveragePrice(updatedPriceHistory),
           };
-          // Construct emailContent
-          const emailContent = await generateEmailBody(
-            productInfo,
-            emailNotifType
-          );
-          // Get array of user emails
-          const userEmails = updatedProduct.users.map(
-            (user: any) => user.email
-          );
-          // Send email notification
-          await sendEmail(emailContent, userEmails);
-        }
 
-        return updatedProduct;
+          // console.log(`Product ${index} scraped and updated:`, product);
+
+          // Update Products in DB
+          const updatedProduct = await Product.findOneAndUpdate(
+            { url: product?.url },
+            product,
+            { upsert: true, new: true }
+          );
+
+          if (!updatedProduct) {
+            console.warn(`Product update failed for ${product?.url}`);
+            return;
+          }
+
+          // CHECK EACH PRODUCT'S STATUS & SEND EMAIL ACCORDINGLY
+          const emailNotifType = getEmailNotifType(
+            scrapedProduct,
+            currentProduct
+          );
+          // console.log(`Notification type for ${product.url}:`, emailNotifType);
+
+          if (
+            emailNotifType &&
+            Array.isArray(updatedProduct.users) &&
+            updatedProduct?.users?.length > 0
+          ) {
+            const productInfo = {
+              title: updatedProduct?.title,
+              url: updatedProduct?.url,
+            };
+            // Construct emailContent
+            const emailContent = generateEmailBody(productInfo, emailNotifType);
+            // Get array of user emails
+            const userEmails = updatedProduct?.users?.map(
+              (user: any) => user?.email
+            );
+            // Send email notification
+            await sendEmail(emailContent, userEmails);
+          }
+
+          return updatedProduct;
+        } catch (innerError) {
+          console.error(
+            `Error processing product at index ${index}:`,
+            innerError
+          );
+          return null;
+        }
       })
     );
 
     return NextResponse.json({
       message: "Ok",
-      data: updatedProducts,
+      data: updatedProducts.filter(Boolean), // Filter out any undefined or null results
     });
   } catch (error: any) {
-    throw new Error(`Failed to get all products: ${error.message}`);
+    console.error("Error in GET:", error);
+    return NextResponse.json({
+      message: "Error",
+      error: error.message,
+    });
   }
 }
