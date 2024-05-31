@@ -149,7 +149,7 @@ export async function GET() {
     console.log("Error in GET:", error);
     return NextResponse.json({
       message: "Error while performing the action",
-      error: error.message,
+      error: error?.message,
     });
   }
 }
