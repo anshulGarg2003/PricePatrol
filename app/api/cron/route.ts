@@ -15,29 +15,27 @@ export async function GET(request: Request) {
     await connectDB();
 
     const products = await Product.find({});
-    if (!products || products.length === 0) {
-      throw new Error("No product fetched");
-    }
+    if (!products) throw new Error("No product fetched");
+
+    // console.log("Fetched products:", products);
 
     // SCRAPE LATEST PRODUCT DETAILS & UPDATE DB
     const updatedProducts = await Promise.all(
-      products.map(async (currentProduct) => {
+      products.map(async (currentProduct, index) => {
         try {
           // Scrape product
-          const scrapedProduct = await scrapeAmazonProduct(currentProduct.url);
+          const scrapedProduct = await scrapeAmazonProduct(currentProduct?.url);
           if (!scrapedProduct) {
-            console.warn(`Product scrape failed for ${currentProduct.url}`);
-            return null;
+            console.warn(`Product scrape failed for ${currentProduct?.url}`);
+            return;
           }
 
-          // Ensure priceHistory is an array
           const priceHistory = Array.isArray(currentProduct.priceHistory)
-            ? currentProduct.priceHistory
+            ? currentProduct?.priceHistory
             : [];
-
           const updatedPriceHistory = [
             ...priceHistory,
-            { price: scrapedProduct.currentPrice, date: new Date() },
+            { price: scrapedProduct?.currentPrice, date: new Date() },
           ];
 
           const product = {
@@ -48,16 +46,18 @@ export async function GET(request: Request) {
             averagePrice: getAveragePrice(updatedPriceHistory),
           };
 
+          // console.log(`Product ${index} scraped and updated:`, product);
+
           // Update Products in DB
           const updatedProduct = await Product.findOneAndUpdate(
-            { url: product.url },
+            { url: product?.url },
             product,
             { upsert: true, new: true }
           );
 
           if (!updatedProduct) {
-            console.warn(`Product update failed for ${product.url}`);
-            return null;
+            console.warn(`Product update failed for ${product?.url}`);
+            return;
           }
 
           // CHECK EACH PRODUCT'S STATUS & SEND EMAIL ACCORDINGLY
@@ -65,32 +65,33 @@ export async function GET(request: Request) {
             scrapedProduct,
             currentProduct
           );
+          // console.log(`Notification type for ${product.url}:`, emailNotifType);
 
           if (
             emailNotifType &&
             Array.isArray(updatedProduct.users) &&
-            updatedProduct.users.length > 0
+            updatedProduct?.users?.length > 0
           ) {
             const productInfo = {
-              title: updatedProduct.title,
-              url: updatedProduct.url,
+              title: updatedProduct?.title,
+              url: updatedProduct?.url,
             };
             // Construct emailContent
             const emailContent = generateEmailBody(productInfo, emailNotifType);
             // Get array of user emails
-            const userEmails = updatedProduct.users
-              .map((user: any) => user.email)
-              .filter(Boolean); // Filter out any undefined or null emails
-
-            if (userEmails.length > 0) {
-              // Send email notification
-              await sendEmail(emailContent, userEmails);
-            }
+            const userEmails = updatedProduct?.users?.map(
+              (user: any) => user?.email
+            );
+            // Send email notification
+            await sendEmail(emailContent, userEmails);
           }
 
           return updatedProduct;
         } catch (innerError) {
-          console.error(`Error processing product:`, innerError);
+          console.error(
+            `Error processing product at index ${index}:`,
+            innerError
+          );
           return null;
         }
       })
@@ -102,9 +103,6 @@ export async function GET(request: Request) {
     });
   } catch (error: any) {
     console.error("Error in GET:", error);
-    return NextResponse.json({
-      message: "Error",
-      error: error.message,
-    });
+    throw new error("Error while executing", error);
   }
 }
