@@ -8,7 +8,7 @@ const productSchema = new mongoose.Schema(
     title: { type: String, required: true },
     currentPrice: { type: Number, required: true },
     originalPrice: { type: Number, required: true },
-    PriceHistory: [
+    priceHistory: [
       {
         price: { type: Number, required: true },
         date: { type: Date, default: Date.now },

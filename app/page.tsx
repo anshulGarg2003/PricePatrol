@@ -4,6 +4,7 @@ import Searchbar from "@/components/Searchbar";
 import { getAllProducts } from "@/lib/actions";
 import Image from "next/image";
 import React from "react";
+import SendMailButton from "@/components/SendingMail";
 
 const Home = async () => {
   const allProducts = await getAllProducts();
@@ -49,6 +50,7 @@ const Home = async () => {
           </div>
         </div>
       </section>
+      {/* <SendMailButton /> */}
     </>
   );
 };

@@ -31,9 +31,9 @@ export async function scrapeAndStoreProduct(productURL: string) {
       product = {
         ...scrapedProduct,
         priceHistory: updatedPriceHistory,
-        lowestPrice: getLowestPrice(updatedPriceHistory),
-        highestPrice: getHighestPrice(updatedPriceHistory),
-        averagePrice: getAveragePrice(updatedPriceHistory),
+        lowestPrice: await getLowestPrice(updatedPriceHistory),
+        highestPrice: await getHighestPrice(updatedPriceHistory),
+        averagePrice: await getAveragePrice(updatedPriceHistory),
       };
     }
 
@@ -106,11 +106,24 @@ export async function addUserEmailToProduct(
       product.users.push({ email: userEmail });
       await product.save();
 
-      const emailContent = generateEmailBody(product, "WELCOME");
+      const emailContent = await generateEmailBody(product, "WELCOME");
       console.log("Start");
       await sendEmail(emailContent, [userEmail]);
     }
   } catch (error) {
     console.log("Error while sending email to user", error);
   }
+}
+
+export async function cronProduct() {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"; // Ensure your base URL is correct
+  const response = await fetch(`${baseUrl}/api/cron`, {
+    method: "GET", // Specify method if needed
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch: ${response.statusText}`);
+  }
+
+  return response.json(); // Assuming the API returns JSON
 }

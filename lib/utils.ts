@@ -1,5 +1,6 @@
 // import { PriceHistoryItem, Product } from "@/types";
 
+"use server";
 import { Product } from "../types";
 import { PriceHistoryItem } from "../types";
 
@@ -13,7 +14,7 @@ const Notification = {
 const THRESHOLD_PERCENTAGE = 40;
 
 // Extracts and returns the price from a list of possible elements.
-export function extractPrice(...elements: any) {
+export async function extractPrice(...elements: any) {
   for (const element of elements) {
     const priceText = element.text().trim();
 
@@ -34,13 +35,13 @@ export function extractPrice(...elements: any) {
 }
 
 // Extracts and returns the currency symbol from an element.
-export function extractCurrency(element: any) {
+export async function extractCurrency(element: any) {
   const currencyText = element.text().trim().slice(0, 1);
   return currencyText ? currencyText : "";
 }
 
 // Extracts description from two possible elements from amazon
-export function extractDescription($: any) {
+export async function extractDescription($: any) {
   // these are possible elements holding description of the product
   const selectors = [
     ".a-unordered-list .a-list-item",
@@ -63,7 +64,7 @@ export function extractDescription($: any) {
   return "";
 }
 
-export function getHighestPrice(priceList: PriceHistoryItem[]) {
+export async function getHighestPrice(priceList: PriceHistoryItem[]) {
   let highestPrice = priceList[0];
 
   for (let i = 0; i < priceList.length; i++) {
@@ -75,31 +76,35 @@ export function getHighestPrice(priceList: PriceHistoryItem[]) {
   return highestPrice.price;
 }
 
-export function getLowestPrice(priceList: PriceHistoryItem[]) {
+export async function getLowestPrice(priceList: PriceHistoryItem[]) {
   let lowestPrice = priceList[0];
 
-  for (let i = 0; i < priceList.length; i++) {
+  for (let i = 1; i < priceList.length; i++) {
     if (priceList[i].price < lowestPrice.price) {
       lowestPrice = priceList[i];
     }
   }
+  console.log("lowestPrice is call", lowestPrice.price);
 
   return lowestPrice.price;
 }
 
-export function getAveragePrice(priceList: PriceHistoryItem[]) {
+export async function getAveragePrice(priceList: PriceHistoryItem[]) {
   const sumOfPrices = priceList.reduce((acc, curr) => acc + curr.price, 0);
   const averagePrice = sumOfPrices / priceList.length || 0;
 
   return averagePrice;
 }
 
-export const getEmailNotifType = (
+export const getEmailNotifType = async (
   scrapedProduct: Product,
   currentProduct: Product
 ) => {
-  const lowestPrice = getLowestPrice(currentProduct.priceHistory);
+  console.log("Gets into the email type");
+  console.log(currentProduct.priceHistory);
+  const lowestPrice = await getLowestPrice(currentProduct.priceHistory);
 
+  console.log("lowest price", lowestPrice);
   if (scrapedProduct.currentPrice < lowestPrice) {
     return Notification.LOWEST_PRICE as keyof typeof Notification;
   }

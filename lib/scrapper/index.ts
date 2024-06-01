@@ -30,7 +30,7 @@ export async function scrapeAmazonProduct(url: string) {
     const response = await axios.get(url, options);
     const $ = cheerio.load(response.data);
     const title = $("#productTitle").text().trim();
-    const currency = extractCurrency($(".a-price-symbol"));
+    const currency = await extractCurrency($(".a-price-symbol"));
 
     const inStock =
       $(".a-size-medium.a-color-success").text().trim().toLowerCase() ==
@@ -42,7 +42,7 @@ export async function scrapeAmazonProduct(url: string) {
 
     const imageUrls = Object.keys(JSON.parse(image));
 
-    const currentPrice = extractPrice(
+    const currentPrice = await extractPrice(
       $(".priceToPay span.a-price-whole"),
       $("a.size.base.a-color-price"),
       $(".a-button-selected .a-color-base"),
@@ -50,9 +50,9 @@ export async function scrapeAmazonProduct(url: string) {
     );
 
     const discountRate = $(".savingsPercentage").text().replace(/[-%]/g, "");
-    const originalPrice = extractPrice($("span.a-price.a-text-price"));
+    const originalPrice = await extractPrice($("span.a-price.a-text-price"));
 
-    const description = extractDescription($);
+    // const description = await extractDescription($);
     const data = {
       url,
       currency: currency || "$",
@@ -62,7 +62,7 @@ export async function scrapeAmazonProduct(url: string) {
       originalPrice: Number(originalPrice),
       priceHistory: [],
       discountRate: Number(discountRate),
-      description,
+      description: "",
       category: "category",
       reviewsCount: 100,
       stars: 4.5,
