@@ -50,25 +50,45 @@ export async function scrapeAmazonProduct(url: string) {
     );
 
     const discountRate = $(".savingsPercentage").text().replace(/[-%]/g, "");
-    const originalPrice = await extractPrice($("span.a-price.a-text-price"));
+    const originalPrice = await extractPrice(
+      $("span.a-price.a-text-price > span.a-offscreen:first")
+    );
 
-    // const description = await extractDescription($);
+    const starsText = $("span.a-size-base > span.a-color-base").text().trim();
+    const starsMatch = starsText.match(/[\d.]+/); // Match one or more digits or periods
+
+    let stars = "";
+    if (starsMatch) {
+      stars = starsMatch[0]; // The first match is the number we want
+    }
+
+    const boughtText = $("#social-proofing-faceout-title-tk_bought span")
+      .text()
+      .trim();
+    const boughtNumber = boughtText.split(" ")[0];
+
+    const reviewText = $("#acrCustomerReviewText").text().trim();
+    const reviewNumber = reviewText.split(" ")[0].replace(/,/g, "");
+
+    const productDescription = $("#productDescription span").text().trim();
+
     const data = {
       url,
       currency: currency || "$",
       image: imageUrls,
       title,
       currentPrice: Number(currentPrice),
-      originalPrice: Number(originalPrice),
+      originalPrice: Number(originalPrice) || Number(currentPrice),
       priceHistory: [],
       discountRate: Number(discountRate),
-      description: "",
+      description: productDescription,
+      recommend: boughtNumber,
       category: "category",
-      reviewsCount: 100,
-      stars: 4.5,
+      reviewsCount: Number(reviewNumber),
+      stars: Number(stars),
       isOutOfStock: inStock ? false : true,
       lowestPrice: Number(currentPrice),
-      highestPrice: Number(originalPrice),
+      highestPrice: Number(originalPrice) || Number(currentPrice),
       averagePrice: Number(currentPrice),
     };
 

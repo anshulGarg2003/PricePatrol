@@ -93,7 +93,10 @@ export async function GET(request: Request) {
           // console.log(updatedProduct);
           return updatedProduct;
         } catch (innerError) {
-          console.error(`Error processing product at index ${index}:`);
+          console.error(
+            `Error processing product at index ${index}:`,
+            innerError
+          );
           return null;
         }
       })

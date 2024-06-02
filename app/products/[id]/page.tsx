@@ -2,11 +2,12 @@ import Modal from "@/components/Modal";
 import PriceInfoCard from "@/components/PriceInfoCard";
 import ProductCard from "@/components/ProductCard";
 import { getProductById, getSimilarProducts } from "@/lib/actions";
-import { formatNumber } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import React from "react";
+import { Carousel } from "react-responsive-carousel";
+import "react-responsive-carousel/lib/styles/carousel.min.css";
 
 type Props = {
   params: { id: string };
@@ -16,16 +17,23 @@ const ProductPage = async ({ params: { id } }: Props) => {
   const product = await getProductById(id);
   const similarproduct = await getSimilarProducts(id);
   if (!product) redirect("/");
+
+  const formatNumber = (num: number = 0) => {
+    return num.toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+  };
+
   return (
     <div className="product-container">
       <div className="flex gap-28 xl:flex-row flex-col">
-        <div className="product-image">
+        <div key={product.title} className="flex items-center justify-center">
           <Image
             src={product.image[0]}
             alt={product.title}
             width={550}
             height={400}
-            className=" flex items-center justify-center"
           />
         </div>
 
@@ -92,7 +100,7 @@ const ProductPage = async ({ params: { id } }: Props) => {
                     height={16}
                   />
                   <p className="text-sm text-primary-orange font-semibold">
-                    {product.stars || "25"}
+                    {product.stars}
                   </p>
                 </div>
                 <div className="product-reviews">
@@ -103,13 +111,15 @@ const ProductPage = async ({ params: { id } }: Props) => {
                     height={16}
                   />
                   <p className="text-sm text-secondary font-semibold">
-                    {product.reviewCount} Reviews
+                    {product.reviewsCount} Reviews
                   </p>
                 </div>
               </div>
               <p className="text-sm text-black opacity-50">
-                <span className="text-primary-green font-semibold">93%</span> of
-                buyers have remcommend this...
+                <span className="text-primary-green font-semibold">
+                  {product.recommend === "" ? "Many" : product.recommend}
+                </span>{" "}
+                of buyers have remcommend this...
               </p>
             </div>
           </div>
@@ -159,9 +169,7 @@ const ProductPage = async ({ params: { id } }: Props) => {
             Product Description
           </h3>
 
-          <div className="flex flex-col gap-4">
-            {product?.description?.split("/n")}
-          </div>
+          <div className="flex flex-col gap-4">{product.description}</div>
         </div>
 
         <button className="btn w-fit mx-auto flex items-center justify-center gap-3 min-w-[200px]">
@@ -171,7 +179,7 @@ const ProductPage = async ({ params: { id } }: Props) => {
             width={22}
             height={22}
           />
-          <Link href="/" className="text-base text-white">
+          <Link href={product.url} className="text-base text-white">
             Buy Now
           </Link>
         </button>
